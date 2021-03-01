@@ -18,19 +18,22 @@
   #drawPile {
     grid-column: 2/3;
     grid-row: 2/5;
-    background-image: url("./cards/Gray_back.jpg");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
+    // background-image: url("./cards/Gray_back.jpg");
+    // background-position: center;
+    // background-repeat: no-repeat;
+    display: flex;
+    height: 100%;
+    width: 100%;
+    // background-size: cover;
   }
 
   #dropedPile {
     grid-column: 4/5;
     grid-row: 2/5;
-    background-image: url("./cards/Gray_back.jpg");
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
+    // background-image: url("./cards/Gray_back.jpg");
+    // background-position: center;
+    // background-repeat: no-repeat;
+    // background-size: cover;
     display: flex;
   }
 }
@@ -138,4 +141,8 @@
     grid-row: 9/10;
     grid-column: 2/3;
   }
+}
+
+.checkedCard {
+  border: 3px solid red;
 }

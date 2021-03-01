@@ -1,5 +1,5 @@
 const SUITS = ["H", "D", "S", "C"];
-const VAlUES = [
+const VALUES = [
   "A",
   "2",
   "3",
@@ -89,27 +89,38 @@ class Player {
     return sum;
   }
 
-  discardCard(cardRankNSuit, pileDeck) {
-    for (card of this.cards)
-      if (cardRankNSuit === card.rank + card.suit) {
-        let cardPlace = this.cards.indexOf(card);
-        pileDeck.push(this.cards[cardPlace]);
-        this.cards.splice(cardPlace, 1);
-      }
+  discardCard(card) {
+    const cardPlace = this.cards.indexOf(card);
+    this.cards.splice(cardPlace, 1);
   }
 
-  drawCard(drawingDeck) {
-    this.cards.push(drawingDeck.pop());
+  drawCard(drawingDeck, first = false) {
+    if (first) {
+      this.cards.push(drawingDeck.shift());
+    } else {
+      this.cards.push(drawingDeck.pop());
+    }
   }
 
   stringToCardObj(cardId) {
     if (cardId === "JOKERred") {
-      return this.cards.find((string) => string === "JOKERred");
+      return this.cards.find((card) => card.isJoker && card.suit === "red");
     } else if (cardId === "JOKERblack") {
-      return this.cards.find((string) => string === "JOKERblack");
+      return this.cards.find((card) => card.isJoker && card.suit === "black");
     } else {
-      const suit = cardId[0];
-      const value = cardId;
+      if (cardId.length === 3) {
+        const suit = cardId[2];
+        const rank = cardId[0] + cardId[1];
+        return this.cards.find(
+          (cardObj) => cardObj.suit === suit && cardObj.rank === rank
+        );
+      } else {
+        const suit = cardId[1];
+        const rank = cardId[0];
+        return this.cards.find(
+          (cardObj) => cardObj.suit === suit && cardObj.rank === rank
+        );
+      }
     }
   }
 }
@@ -139,9 +150,10 @@ class Game {
   constructor(playersNum) {
     this.drawingDeck = new TableDeck().cards;
     this.players = createPlayers(playersNum);
-    this.dropedCards = [];
+    this.dropedPile = [];
     this.round = 0;
     this.starter = this.players[Math.floor(Math.random() * playersNum)];
+    this.lastDroped = [];
   }
 
   CardDeal() {
@@ -150,6 +162,7 @@ class Game {
         player.cards.push(this.drawingDeck.pop());
       }
     }
+    this.lastDroped.push(this.drawingDeck.pop());
   }
 
   winnerFounder() {
@@ -179,19 +192,75 @@ function newElem(type, id) {
 
 function freshDeck() {
   return SUITS.flatMap((suit) => {
-    return VAlUES.map((rank) => {
+    return VALUES.map((rank) => {
       return new Card(suit, rank);
     });
   });
 }
+// receives ordered array
+// console.log(game.players[0].cards);
 
 function isLegalChoice(selectedCards, cardToSelect) {
-  return true;
+  if (selectedCards.length === 0 || cardToSelect.isJoker) return true;
+  if (
+    selectedCards.every(
+      (selectedCard) =>
+        selectedCard.rank === cardToSelect.rank || selectedCard.isJoker
+    )
+  )
+    return true;
+  let cardToSelValue = VALUES.indexOf(cardToSelect.rank);
+  if (
+    selectedCards.every(
+      (selectedCard) =>
+        selectedCard.suit === cardToSelect.suit || selectedCard.isJoker
+    )
+  ) {
+    const below = cardToSelValue - VALUES.indexOf(selectedCards[0].rank);
+    const above =
+      cardToSelValue -
+      VALUES.indexOf(selectedCards[selectedCards.length - 1].rank);
+    if (below === -1 || above === 1) return true;
+    else if (Math.abs(below) > 1 || Math.abs(above) > 1) {
+      const numberOfJokers = selectedCards.reduce((prev, card) => {
+        if (card.isJoker) {
+          prev++;
+        }
+      }, 0);
+      for (card of selectedCards) {
+        if (
+          Math.abs(cardToSelValue - VALUES.indexOf(card.rank)) <=
+          numberOfJokers + 1
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
-// if (selectedCards.length === 0 || cardToSelect.isJoker===true) return true;
-// if ((selectedCards.every(selectedCard => selectedCard.rank === cardToSelect.rank || selectedCard.isJoker))) return true;
-// if (selectedCards.every(selectedCard => selectedCard.suit === cardToSelect.suit || selectedCard.isJoker)) {
-
-// }
-// return false;
-// console.log(game.players[0].cards);
+/* function isLegalChoice(selectedCards, cardToSelect) {
+  if (selectedCards.length === 0 || cardToSelect.isJoker) return true;
+  if (
+    selectedCards.every(
+      (selectedCard) =>
+        selectedCard.rank === cardToSelect.rank || selectedCard.isJoker
+    )
+  )
+    return true;
+  if (
+    selectedCards.every(
+      (selectedCard) =>
+        selectedCard.suit === cardToSelect.suit || selectedCard.isJoker
+    )
+  ) {
+    const below =
+      VALUES.indexOf(cardToSelect.rank) - VALUES.indexOf(selectedCards[0].rank);
+    const above =
+      VALUES.indexOf(cardToSelect.rank) -
+      VALUES.indexOf(selectedCards[selectedCards.length - 1].rank);
+    if (below === -1 || above === 1 || below === NaN || above === NaN)
+      return true;
+  }
+  return false;
+} */

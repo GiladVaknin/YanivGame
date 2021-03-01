@@ -7,6 +7,7 @@ const player2 = document.getElementById("player2");
 const player3 = document.getElementById("player3");
 const player4 = document.getElementById("player4");
 const piles = document.getElementById("piles");
+
 let gameLoaded = false;
 
 function startNewGameWindow() {
@@ -28,14 +29,17 @@ function startNewGameWindow() {
   startWindow.append(numOfPlayers);
   startWindow.append(helloMessage);
   startWindow.append(startButton);
+  board.append(startWindow);
+
   startButton.addEventListener("click", () => {
     let newGame = startNewGame(numOfPlayers.value);
+
     newGame.CardDeal();
     board.removeChild(startWindow);
-    printGame(newGame, numOfPlayers.value);
+    // printGame(newGame);
     gameLoaded = true;
+    playTurn(newGame.starter, newGame);
   });
-  board.append(startWindow);
 }
 
 function startNewGame(numOfPlayers) {
@@ -51,7 +55,11 @@ function createCard(cardObj) {
   return card;
 }
 
-function printGame(game, numOfPlayers) {
+function printGame(game) {
+  for (card of game.lastDroped) {
+    cardImg = createCard(card);
+    dropedPile.append(cardImg);
+  }
   for (player of game.players) {
     let playerDiv = document.getElementById(player.name);
     for (card of player.cards) {
@@ -62,31 +70,69 @@ function printGame(game, numOfPlayers) {
   }
 }
 
-function playTurn(nowPlayer) {
-  nowPlayer.addEventListener("click", (e) => {
+function playTurn(nowPlayer, gameState) {
+  for (player of gameState.players) {
+    let playersDivs = document.getElementById(player.name);
+    playersDivs.innerHTML = "";
+  }
+  dropedPile.innerHTML = "";
+  printGame(gameState);
+  let cardsArr = [];
+  let playerDiv = document.getElementById(nowPlayer.name);
+  console.log(playerDiv);
+  playerDiv.addEventListener("click", function chooseCards(e) {
+    if (e.target.className !== "card") {
+      return;
+    }
+
     const cardSuitNRank = e.target.id;
     const cardObj = nowPlayer.stringToCardObj(cardSuitNRank);
-    let cardsArr = [];
-    if (isLegalChoice(cardsArr, cardObj)) {
+
+    if (e.target.isChecked) {
+      let cardPlace = cardsArr.indexOf(cardObj);
+      cardsArr.splice(cardPlace, 1);
+      e.target.isChecked = false;
+      e.target.style.filter = "brightness(100%)";
+    } else if (isLegalChoice(cardsArr, cardObj)) {
       cardsArr.push(cardObj);
+      e.target.isChecked = true;
+      e.target.style.filter = "brightness(50%)";
     }
   });
 
-  piles.addEventListener("click", (e) => {
-    if (e.target.id !== "drawPile" && e.target.id !== "dropedPile") {
+  piles.addEventListener("click", function placeCards(e) {
+    console.log(e.target.parentNode);
+    if (
+      e.target.parentNode.id !== "drawPile" &&
+      e.target.parentNode.id !== "dropedPile"
+    ) {
       return;
     }
     if (cardsArr.length === 0) {
       return;
     }
-    const pileToTakeFrom = e.target.id === "drawPile" ? drawPile : dropedPile;
+
     //TODO!! check which card of the dropedPile to take - first or last
 
     if (isLegalPut(cardsArr)) {
-      dropedPile.push(...sortCards(cardsArr));
-      console.log(cardsArr);
+      gameState.dropedPile.push(...sortCards(cardsArr));
+      nowPlayer.drawCard(gameState[drawFrom(e.target)], true);
+      gameState.lastDroped = [];
+      gameState.lastDroped.push(...sortCards(cardsArr));
+      discardCardDom(nowPlayer, playerDiv, gameState.lastDroped);
     }
-    discardCardDom(nowPlayer, cardSuitNRank);
+
+    // playerDiv.removeEventListener("click", chooseCards);
+
+    let nextPlayer;
+    if (gameState.players.indexOf(nowPlayer) === gameState.players.length - 1) {
+      nextPlayer = gameState.players[0];
+    } else {
+      nextPlayer = gameState.players[gameState.players.indexOf(nowPlayer) + 1];
+    }
+
+    playTurn(nextPlayer, gameState);
+    playerDiv.removeEventListener("click", placeCards);
   });
 }
 
@@ -94,7 +140,7 @@ function sortCards(cardsArr) {
   const thereIsAJoker = cardsArr.some((card) => card.isJoker);
   if (!thereIsAJoker) {
     const sortedCards = cardsArr.sort(
-      (a, b) => VALUES.indexOf(b.rank) - VALUE.indexOf(a.rank)
+      (a, b) => VALUES.indexOf(b.rank) - VALUES.indexOf(a.rank)
     );
     return sortedCards;
   } else {
@@ -111,34 +157,40 @@ function sortCards(cardsArr) {
         noJokers.splice(index + 1, 0, ...jokerCards);
       }
     }
-    return noJokers;
+    for (index in cardsArr) {
+      cardsArr.unshift(noJokers[index]);
+      cardsArr.pop();
+    }
+
+    // return noJokers;
   }
 }
 
-piles.addEventListener("click", (e) => {
-  console.log(e.target);
-});
+// piles.addEventListener("click", (e) => {
+//   console.log(e.target);
+// });
 
 function drawFrom(target) {
-  return target.id;
+  if (target.id === "drawPile") return "drawingDeck";
+  else return "lastDroped";
 }
 
-function discardCardDom(player, cardSuitNRank) {
-  if (cardSuitNRank) {
-    let playerCard = document.getElementById(cardSuitNRank);
-    dropedPile.innerHTML = "";
-    player.removeChild(playerCard);
-    dropedPile.append(playerCard);
+function discardCardDom(playerObj, playerDiv, cards) {
+  for (card of cards) {
+    let playerCard = document.getElementById(card.rank + card.suit);
+    //dropedPile.innerHTML = "";
+    playerObj.discardCard(card);
+    // playerDiv.removeChild(playerCard);
+    //dropedPile.append(playerCard);
   }
 }
 
 //מקבלת מערך של הקלפים שנבחרו, מחזירה טרו אם זה מהלך שחוקי להניח על השולחן
 function isLegalPut(cardsArr) {
   //cards - "4H"
+  let firstCardRank = cardsArr[0].rank;
   let isAllSameRank = cardsArr.every((card, index, arr) => {
-    return (
-      card.rank === arr[index + 1].rank || arr[index].isJoker || card.isJoker
-    ); //joker is all values
+    return card.rank === firstCardRank || card.isJoker; //joker is all values
   });
 
   if (cardsArr.length === 1) {
@@ -154,8 +206,8 @@ function isLegalPut(cardsArr) {
 
 document.addEventListener("onload", startNewGameWindow());
 
-playTurn(player1);
+// playTurn(player1);
 
-document.addEventListener("onload", startNewGameWindow());
+// document.addEventListener("onload", startNewGameWindow());
 
-playTurn(player1);
+// playTurn(player1);

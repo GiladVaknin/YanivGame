@@ -33,10 +33,11 @@
   -ms-grid-row: 2;
   -ms-grid-row-span: 3;
   grid-row: 2/5;
-  background-image: url("./cards/Gray_back.jpg");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  height: 100%;
+  width: 100%;
 }
 
 #piles #dropedPile {
@@ -46,10 +47,6 @@
   -ms-grid-row: 2;
   -ms-grid-row-span: 3;
   grid-row: 2/5;
-  background-image: url("./cards/Gray_back.jpg");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -230,5 +227,9 @@
   -ms-grid-column: 2;
   -ms-grid-column-span: 1;
   grid-column: 2/3;
+}
+
+.checkedCard {
+  border: 3px solid red;
 }
 /*# sourceMappingURL=style.css.map */
